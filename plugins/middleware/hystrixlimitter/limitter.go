@@ -2,9 +2,10 @@ package hystrixlimitter
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 /*
@@ -14,7 +15,7 @@ import (
 
 var (
 	// ErrLimitExceed 超出限流器限制
-	ErrLimitExceed = errors.New("Rate limit exceed!")
+	ErrLimitExceed = status.New(codes.ResourceExhausted, "Request limit exceeded.")
 )
 
 // UnaryHandler 非流式中间件
@@ -26,7 +27,7 @@ func (hl *HystrixLimitter) UnaryHandler(ctx context.Context, req interface{}, in
 
 	// 限流
 	if hl.Limiter.Allow() == false {
-		return nil, ErrLimitExceed
+		return nil, ErrLimitExceed.Err()
 	}
 
 	// 执行下一步
@@ -43,7 +44,7 @@ func (hl *HystrixLimitter) StreamHandler(srv interface{}, stream grpc.ServerStre
 
 	// 限流
 	if hl.StreamLimiter.Allow() == false {
-		return ErrLimitExceed
+		return ErrLimitExceed.Err()
 	}
 
 	err = handler(srv, stream)

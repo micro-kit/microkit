@@ -10,6 +10,7 @@ import (
 	"github.com/micro-kit/micro-common/logger"
 	"github.com/micro-kit/microkit/internal/common"
 	"github.com/micro-kit/microkit/plugins/middleware"
+	"github.com/micro-kit/microkit/plugins/middleware/errorformat"
 	"github.com/micro-kit/microkit/plugins/middleware/hystrixlimitter"
 	zap "github.com/micro-kit/microkit/plugins/middleware/logger"
 	"github.com/micro-kit/microkit/plugins/middleware/opentracing"
@@ -67,6 +68,8 @@ func NewServer(opts ...Option) (*Server, error) {
 	s := &Server{
 		opts: new(Options),
 	}
+	// 服务端加载日志整理
+	opts = append(opts, Middleware(errorformat.NewErrorFormat()))
 	// 配置
 	configure(s, opts...)
 	return s, nil

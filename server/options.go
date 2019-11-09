@@ -48,7 +48,10 @@ func Advertise(advertise string) Option {
 // Middleware 服务中间件
 func Middleware(middlewares ...middleware.Middleware) Option {
 	return func(o *Options) {
-		o.middlewares = middlewares
+		if o.middlewares == nil {
+			o.middlewares = make([]middleware.Middleware, 0)
+		}
+		o.middlewares = append(o.middlewares, middlewares...)
 	}
 }
 

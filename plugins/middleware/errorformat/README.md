@@ -1,2 +1,5 @@
 # 备注
-处理服务端返回错误，如果不是自定义错误类型，则设置为默认错误
+使用grpc 错误返回整理为自定义错误
+
+官方示例
+https://github.com/grpc/grpc-go/blob/master/examples/features/errors/server/main.go
