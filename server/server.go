@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/micro-kit/micro-common/config"
 	"github.com/micro-kit/micro-common/logger"
@@ -16,6 +17,7 @@ import (
 	"github.com/micro-kit/microkit/plugins/middleware/opentracing"
 	"github.com/micro-kit/microkit/plugins/middleware/prometheus"
 	"github.com/micro-kit/microkit/plugins/register"
+	"github.com/micro-kit/microkit/plugins/register/noregister"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
@@ -27,6 +29,11 @@ import (
 
 var (
 	tracerCloser io.Closer // 链路追踪关闭
+)
+
+const (
+	// DefaultMetricsAddress 默认普罗米修斯监控数据获取监听地址
+	DefaultMetricsAddress = ":19999"
 )
 
 // Server 用于构造grpc服务，中间件加载等通用代码，简化应用创建过程
@@ -60,7 +67,42 @@ func NewDefaultServer() (*Server, error) {
 		hystrixlimitter.ServiceName(serviceName),
 	))
 
-	return NewServer(Middleware(opts...), MetricsAddress(":19999"))
+	return NewServer(Middleware(opts...), MetricsAddress(DefaultMetricsAddress))
+}
+
+// NewNoRegisterServer 不注册服务到注册中心
+func NewNoRegisterServer() (*Server, error) {
+	serviceName := config.GetSvcName()
+	// 存储默认选项
+	opts := make([]middleware.Middleware, 0)
+	// 日志中间件
+	opts = append(opts, zap.NewZapLogger(nil, zap.Logger(logger.Logger)))
+	// 链路追踪中间件
+	tracer, closer, err := common.NewJaegerTracer(serviceName)
+	if err != nil {
+		return nil, err
+	}
+	tracerCloser = closer
+	opts = append(opts, opentracing.NewOpentracing(
+		opentracing.Logger(logger.Logger),
+		opentracing.Tracer(tracer),
+	))
+	// 监控中间件
+	opts = append(opts, prometheus.NewPrometheus(prometheus.Enable(true)))
+	// 熔断限流中间件
+	opts = append(opts, hystrixlimitter.NewHystrixLimitter(
+		hystrixlimitter.Type(hystrixlimitter.HystrixLimitterTypeServer),
+		hystrixlimitter.Logger(logger.Logger),
+		hystrixlimitter.ServiceName(serviceName),
+	))
+
+	// 不注册到注册中心
+	noRegister := func(o *Options) {
+		// 设置为空的注册中间件
+		o.reg = noregister.NewRegistry()
+	}
+
+	return NewServer(Middleware(opts...), MetricsAddress(DefaultMetricsAddress), noRegister)
 }
 
 // NewServer 创建一个grpc服务对象
@@ -177,6 +219,8 @@ func (s *Server) Stop() error {
 	if err != nil {
 		return err
 	}
+	// 停2秒更安全的让任务处理完
+	time.Sleep(3 * time.Second)
 	return nil
 }
 
