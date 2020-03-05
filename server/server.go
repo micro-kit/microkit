@@ -9,6 +9,7 @@ import (
 
 	"github.com/micro-kit/micro-common/config"
 	"github.com/micro-kit/micro-common/logger"
+	"github.com/micro-kit/micro-common/opentrac"
 	"github.com/micro-kit/microkit/internal/common"
 	"github.com/micro-kit/microkit/plugins/middleware"
 	"github.com/micro-kit/microkit/plugins/middleware/errorformat"
@@ -19,6 +20,7 @@ import (
 	"github.com/micro-kit/microkit/plugins/register"
 	"github.com/micro-kit/microkit/plugins/register/noregister"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 )
 
@@ -49,7 +51,7 @@ func NewDefaultServer() (*Server, error) {
 	// 日志中间件
 	opts = append(opts, zap.NewZapLogger(nil, zap.Logger(logger.Logger)))
 	// 链路追踪中间件
-	tracer, closer, err := common.NewJaegerTracer(serviceName)
+	tracer, closer, err := opentrac.NewJaegerTracer(serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +80,7 @@ func NewNoRegisterServer() (*Server, error) {
 	// 日志中间件
 	opts = append(opts, zap.NewZapLogger(nil, zap.Logger(logger.Logger)))
 	// 链路追踪中间件
-	tracer, closer, err := common.NewJaegerTracer(serviceName)
+	tracer, closer, err := opentrac.NewJaegerTracer(serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +163,18 @@ func (s *Server) Serve(regServer ...RegisterServer) error {
 	if err != nil {
 		return err
 	}
+	// Create a cmux. https://github.com/soheilhy/cmux
+	m := cmux.New(lis)
+	grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
+	if s.opts.httpHandler != nil {
+		httpL := m.Match(cmux.HTTP1Fast())
+		httpS := &http.Server{
+			Handler: s.opts.httpHandler,
+		}
+		// 启动http服务
+		go httpS.Serve(httpL)
+	}
+
 	// 组织流式调用和普通调用插件列表
 	streamInterceptors := make([]grpc.StreamServerInterceptor, 0)
 	unaryInterceptors := make([]grpc.UnaryServerInterceptor, 0)
@@ -188,8 +202,9 @@ func (s *Server) Serve(regServer ...RegisterServer) error {
 	go s.Metrics()
 
 	logger.Logger.Infow("启动服务", "service_name", s.opts.serviceName, "id", s.opts.id, "advertise", s.opts.advertise)
-	// 启动服务
-	return grpcServer.Serve(lis)
+	// 启动grpc服务
+	go grpcServer.Serve(grpcL)
+	return m.Serve()
 }
 
 // Register 注册服务

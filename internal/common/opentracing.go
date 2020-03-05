@@ -12,7 +12,7 @@ import (
 /* 生成一个链路追踪器 */
 
 // NewJaegerTracer 生成一个默认链路追踪器
-func NewJaegerTracer(serviceName string) (tracer opentracingGo.Tracer, closer io.Closer, err error) {
+func NewJaegerTracer1(serviceName string) (tracer opentracingGo.Tracer, closer io.Closer, err error) {
 	cfg := jaegerCfg.Configuration{
 		ServiceName: serviceName,
 		RPCMetrics:  true,

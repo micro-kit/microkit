@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/micro-kit/micro-common/logger"
+	"github.com/micro-kit/micro-common/opentrac"
 	"github.com/micro-kit/microkit/internal/common"
 	"github.com/micro-kit/microkit/plugins/middleware"
 	"github.com/micro-kit/microkit/plugins/middleware/hystrixlimitter"
@@ -44,7 +45,7 @@ func NewDefaultClient(opts ...Option) (*Client, error) {
 	// 日志中间件
 	middlewares = append(middlewares, zap.NewZapLogger(nil, zap.Logger(logger.Logger)))
 	// 链路追踪中间件
-	tracer, closer, err := common.NewJaegerTracer(c.opts.serviceName)
+	tracer, closer, err := opentrac.NewJaegerTracer(c.opts.serviceName)
 	if err != nil {
 		return nil, err
 	}

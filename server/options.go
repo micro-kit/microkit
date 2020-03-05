@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/micro-kit/microkit/plugins/middleware"
 	"github.com/micro-kit/microkit/plugins/register"
 )
@@ -27,6 +29,8 @@ type Options struct {
 
 	writeBufSize int // 写缓冲区
 	readBufSize  int // 读缓冲区
+
+	httpHandler http.Handler // http 处理函数
 
 	metricsAddress string // 普罗米修斯监控信息接口
 }
@@ -94,5 +98,12 @@ func ReadBufSize(readBufSize int) Option {
 func MetricsAddress(metricsAddress string) Option {
 	return func(o *Options) {
 		o.metricsAddress = metricsAddress
+	}
+}
+
+// HttpHandler 设置http处理方法
+func HttpHandler(httpHandler http.Handler) Option {
+	return func(o *Options) {
+		o.httpHandler = httpHandler
 	}
 }
