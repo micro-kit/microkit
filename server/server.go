@@ -163,9 +163,9 @@ func (s *Server) Serve(regServer ...RegisterServer) error {
 	if err != nil {
 		return err
 	}
-	// Create a cmux. https://github.com/soheilhy/cmux
+	// Create a cmux. https://github.com/soheilhy/cmux https://github.com/soheilhy/cmux/issues/64
 	m := cmux.New(lis)
-	grpcL := m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
+	grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 	if s.opts.httpHandler != nil {
 		httpL := m.Match(cmux.HTTP1Fast())
 		httpS := &http.Server{
