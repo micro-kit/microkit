@@ -20,12 +20,29 @@ type Options struct {
 	Secure    bool        // 是否启用安全连接
 	TLSConfig *tls.Config // tls加密连接配置
 	Logger    *zap.SugaredLogger
+	Username  string // 用户名
+	Password  string // 密码
+
 }
 
 // Addrs 服务注册中间件地址
 func Addrs(addrs ...string) Option {
 	return func(o *Options) {
 		o.Addrs = addrs
+	}
+}
+
+// Username 注册中心用户名
+func Username(username string) Option {
+	return func(o *Options) {
+		o.Username = username
+	}
+}
+
+// Username 注册中心用户名
+func Password(password string) Option {
+	return func(o *Options) {
+		o.Password = password
 	}
 }
 

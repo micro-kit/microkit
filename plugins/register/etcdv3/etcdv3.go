@@ -59,6 +59,8 @@ func (er *EtcdV3) initEtcdCli() (err error) {
 	er.cli, err = clientv3.New(clientv3.Config{
 		Endpoints:   er.Options.Addrs,
 		DialTimeout: 10 * time.Second,
+		Username:    er.Options.Username,
+		Password:    er.Options.Password,
 	})
 	if err != nil {
 		er.Options.Logger.Errorw("连接etcd服务错误", "err", err, "addrs", er.Options.Addrs)
